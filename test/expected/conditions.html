@@ -51,14 +51,14 @@
   <link rel="stylesheet" href="not_bar_and_not_foo.css">
 <!--<!(endif)-->
 
-<!--(if someKey someStringValue)><!-->
+<!--(if someKey someStringValue><!-->
   <link rel="stylesheet" href="some_key_value.css">
 <!--<!(endif)-->
 
-<!--(if (someKey == (someStringValue || someOtherStringValue)) && target == any)><!-->
-  <link rel="stylesheet" href="some_key_literal_multi.css">
+<!--(if someKey (someStringValue || someOtherStringValue)><!-->
+  <link rel="stylesheet" href="some_key_values.css">
 <!--<!(endif)-->
 
-<!--(if someKey == 'someStringValue')><!-->
-  <link rel="stylesheet" href="some_key_literal.css">
+<!--(if someKey)><!-->
+  <link rel="stylesheet" href="somefunction.css">
 <!--<!(endif)-->

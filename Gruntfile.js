@@ -60,6 +60,17 @@ module.exports = function(grunt) {
         files: {
           'tmp/release.html': 'test/fixtures/index.html'
         }
+      },
+      any: {
+        options: {
+          conditions: {
+            someKey: 'someStringValue',
+            someOtherKey: 'someOtherStringValue'
+          }
+        },
+        files: {
+          'tmp/conditions.html': 'test/fixtures/index.html'
+        }
       }
     },
 

@@ -10,23 +10,48 @@
 
 var esprima = require('esprima');
 
-function conditionalParser (target, expression) {
-  switch(expression.type) {
-    case 'LogicalExpression':
-      if (expression.operator !== '||') { // we only compare one variable so && is useless
+function ConditionalParser (conditions) {
+  this.conditions = conditions;
+  this.parse = function(expression) {
+    console.log(expression);
+    switch(expression.type) {
+      case 'BinaryExpression':
+        switch(expression.operator) {
+          case '==': return this.parse(expression.left) == this.parse(expression.right);
+          case '===': return this.parse(expression.left) === this.parse(expression.right);
+          case '>=': return this.parse(expression.left) >= this.parse(expression.right);
+          case '>': return this.parse(expression.left) > this.parse(expression.right);
+          case '<=': return this.parse(expression.left) <= this.parse(expression.right);
+          case '<': return this.parse(expression.left) < this.parse(expression.right);
+          case '!=': return this.parse(expression.left) != this.parse(expression.right);
+          case '!==': return this.parse(expression.left) !== this.parse(expression.right);
+          default: throw new Error('Syntax is not supported');
+        }
+        return this.parse(expression.left, expression.right);
+      case 'LogicalExpression':
+        
+        switch(expression.operator) {
+          case '||': return this.parse(expression.left) || this.parse(expression.right);
+          case '&&': return this.parse(expression.left) && this.parse(expression.right);
+          default: throw new Error('Syntax is not supported');
+        }
+      case 'UnaryExpression':
+        if (expression.operator !== '!') {
+          throw new Error('Syntax not supported');
+        }
+        return !this.parse(expression.argument);
+      case 'Identifier':
+        console.log(this.conditions[expression.name] || expression.name);
+        return this.conditions[expression.name] || expression.name;
+      case 'Literal':
+        console.log(expression.value);
+        return expression.value;
+      default :
         throw new Error('Syntax not supported');
-      }
-      return conditionalParser(target, expression.left) || conditionalParser(target, expression.right);
-    case 'UnaryExpression':
-      if (expression.operator !== '!') {
-        throw new Error('Syntax not supported');
-      }
-      return !conditionalParser(target, expression.argument);
-    case 'Identifier':
-      return target===expression.name;
-    default :
-      throw new Error('Syntax not supported');
+    }
   }
+
+  return this;
 }
 
 module.exports = function(grunt) {
@@ -36,8 +61,12 @@ module.exports = function(grunt) {
     var target = this.target,
         path = require('path'),
         options = this.options({
-          curlyTags: {}
-        });
+          curlyTags: {},
+          conditions: {}
+        }),
+        conditions = options.conditions;
+        conditions.target = target;
+        var conditionLib = new ConditionalParser(conditions);
 
     this.files.forEach(function(file) {
       file.src.forEach(function(src) {
@@ -56,14 +85,35 @@ module.exports = function(grunt) {
         var contents = grunt.file.read(src);
 
         if (contents) {
-          contents = contents.replace(new RegExp('<!--[\\[\\(]if target (.*?)[\\]\\)]>(<!-->)?([\\s\\S]*?)(<!--)?<![\\[\\(]endif[\\]\\)]-->', 'g'), function(match, $1, $2, $3) {
+          contents = contents.replace(new RegExp('<!--[\\[\\(]if\\s?(\\S*)\\s?([\\&\\|\\=\\s]*)\\s?(.*)[\\]\\)]>(<!-->)?([\\s\\S]*?)(<!--)?<![\\[\\(]endif[\\]\\)]-->', 'g'), function(match, $1, $2, $3, $4, $5) {
             // check if it's really targeted
-            if (!conditionalParser(target, esprima.parse($1).body[0].expression)) {
-              return '';
-            }
+          console.log('$1=' + $1);
+          console.log('$2=\'' + $2 + '\'');
+          console.log('$3=' + $3);
+          console.log('$4=' + $4);
+          console.log('$5=' + $5);
+          var operator = $2,
+              expr, 
+              targ = $1,
+              negative = '';
+          if($3.indexOf('!') !== -1) {
+            negative = '!';
+            $3 = $3.replace('!', '');
+          }
+          
+          if(operator === '') operator = '==';
+          
+          expr = negative + '(' + targ + operator + '(' + $3 + '))';
+
+          console.log(expr + ' ' + conditionLib.parse(esprima.parse(expr).body[0].expression));
+
+          if (!conditionLib.parse(esprima.parse(expr).body[0].expression)) {
+            return '';
+          }
+
 
             // Process any curly tags in content
-            return $3.replace(/\{\{([^{}]*)\}\}/g, function(match, search) {
+            return $5.replace(/\{\{([^{}]*)\}\}/g, function(match, search) {
               var replace = options.curlyTags[search];
               return ('string' === typeof replace) ? replace : match;
             });

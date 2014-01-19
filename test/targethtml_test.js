@@ -30,6 +30,12 @@ exports.targethtml = function(test){
   result = grunt.file.read('tmp/bar.html');
   test.equal(result, expected, 'should process :bar target');
 
+
+  expected = grunt.file.read('test/expected/conditions.html');
+  result = grunt.file.read('tmp/conditions.html');
+  test.equal(result, expected, 's');
+
+
   test.done();
 
 };
